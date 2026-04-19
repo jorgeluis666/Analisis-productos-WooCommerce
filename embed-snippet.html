@@ -1,0 +1,77 @@
+<!-- =========================================================
+     SNIPPET PARA EMBEBER EN LIMARETAIL.COM
+     =========================================================
+
+     PASO 1. SUBIR LA HERRAMIENTA A TU HOSTING
+     ------------------------------------------
+     Sube toda la carpeta "Análisis-productos-WooCommerce" (index.html,
+     /css/, /js/) a tu servidor. Ejemplos de ubicación:
+
+       https://limaretail.com/herramientas/wc-analyzer/
+       https://tools.limaretail.com/wc-analyzer/
+
+     Verifica que abre bien directamente en el navegador antes
+     de embeberlo.
+
+     PASO 2. INSERTAR EN UNA PÁGINA DE WORDPRESS (DIVI)
+     ---------------------------------------------------
+     En el editor Divi de la página donde quieres que aparezca
+     (por ejemplo /analisis-woocommerce/), añade un módulo
+     "Código" y pega el bloque de ABAJO.
+
+     Queda debajo del header del theme automáticamente porque
+     el header de Divi es global y la página se renderiza después.
+     ========================================================= -->
+
+<style>
+  .wc-analyzer-embed{
+    position: relative;
+    width: 100%;
+    background: #F3F4F6;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(15,23,42,0.06);
+  }
+  .wc-analyzer-embed iframe{
+    width: 100%;
+    border: 0;
+    display: block;
+    min-height: 900px;  /* altura inicial — se ajusta sola con postMessage */
+  }
+</style>
+
+<div class="wc-analyzer-embed">
+  <iframe
+    id="wc-analyzer-iframe"
+    src="https://limaretail.com/herramientas/wc-analyzer/"
+    title="WooCommerce Sales Analyzer"
+    loading="lazy"
+    allow="clipboard-read; clipboard-write"
+  ></iframe>
+</div>
+
+<script>
+  // Auto-resize del iframe según el contenido del tool.
+  (function(){
+    var iframe = document.getElementById('wc-analyzer-iframe');
+    window.addEventListener('message', function(e){
+      if(!e.data || e.data.type !== 'wc-analyzer-height') return;
+      if(e.source !== iframe.contentWindow) return;
+      var h = Math.max(900, Math.min(5000, e.data.height + 20));
+      iframe.style.height = h + 'px';
+    });
+  })();
+</script>
+
+<!-- =========================================================
+     ALTERNATIVA: ALTURA FIJA (SIN AUTO-RESIZE)
+     ---------------------------------------------------------
+     Si prefieres una altura fija que scrollee internamente,
+     reemplaza el bloque anterior por:
+
+     <iframe
+       src="https://limaretail.com/herramientas/wc-analyzer/"
+       style="width:100%;height:90vh;border:0;border-radius:12px"
+       title="WooCommerce Sales Analyzer">
+     </iframe>
+     ========================================================= -->
