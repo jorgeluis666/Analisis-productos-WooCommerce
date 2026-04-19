@@ -3,16 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>WooCommerce Sales Analyzer</title>
-<link rel="stylesheet" href="css/styles.css">
+<!-- Cache busting: bumpea APP_VERSION cuando deploys un fix para forzar recarga de assets -->
+<link rel="stylesheet" href="css/styles.css?v=2">
 </head>
 <body>
 <div id="app"></div>
 <div id="toast" class="toast"></div>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<script src="js/parser.js"></script>
-<script src="js/analyzer.js"></script>
-<script src="js/charts.js"></script>
-<script src="js/app.js"></script>
+<script src="js/parser.js?v=2"></script>
+<script src="js/analyzer.js?v=2"></script>
+<script src="js/charts.js?v=2"></script>
+<script src="js/app.js?v=2"></script>
 </body>
 </html>
