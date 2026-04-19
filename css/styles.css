@@ -7,6 +7,13 @@ button,input,select,textarea{font-family:inherit}
 #app{min-height:100%;display:flex}
 /* In standalone mode fill viewport; in iframe the parent controls height */
 @media (min-height: 500px){ #app{ min-height: 100vh } }
+/* Extend sidebar background to full page height via gradient.
+   El elemento .sidebar es sticky + max-height:100vh, entonces su fondo no llega
+   al final en páginas largas. Este gradient pinta una franja oscura permanente
+   en los primeros 240px del contenedor. Se desactiva en mobile (layout columna). */
+@media (min-width: 901px){
+  #app{background:linear-gradient(to right, #0F172A 240px, transparent 240px)}
+}
 .sidebar{width:240px;background:#0F172A;color:#CBD5E1;flex-shrink:0;display:flex;flex-direction:column;padding:20px 0;position:sticky;top:0;max-height:100vh;overflow:auto;align-self:flex-start}
 .sidebar-brand{padding:0 20px 18px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:10px}
 .sidebar-brand .title{font-size:15px;font-weight:600;color:#fff;letter-spacing:-.01em}
