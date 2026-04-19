@@ -1174,9 +1174,10 @@ function viewInsights(){
     const custMap = new Map();
     for(const li of state.ordersData.lineItems){
       const k = li.customer || 'anon:' + li.orderId;
-      custMap.set(k, (custMap.get(k) || new Set())).add(li.orderId);
+      if(!custMap.has(k)) custMap.set(k, new Set());
+      custMap.get(k).add(li.orderId);
     }
-    const recurring = [...custMap.values()].filter(s => s.size >= 2).length;
+    const recurring = [...custMap.values()].filter(set => set.size >= 2).length;
     if(recurring > 0){
       ins.push({k:'ok', t:`<b>${recurring} clientes recurrentes</b> (2+ pedidos). Revisa pestaña Clientes y activa email de fidelización.`});
     }
