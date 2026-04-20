@@ -1784,11 +1784,48 @@ function viewBenchmark(){
   }
   const industry = consent.industry || 'otros';
   const industryLabel = (INDUSTRIES.find(i=>i.id===industry)||{}).label || industry;
-  // Intenta fetch real; si falla o no hay endpoint, usa mock.
-  const bench = MOCK_BENCHMARKS[industry] || MOCK_BENCHMARKS._default;
   const isMock = !CONFIG.studyFetchEndpoint;
 
   const payload = buildContributionPayload(industry, consent.sizeBucket || 'micro');
+  const sizeLabel = (sizeBucketFromRevenue(payload.products?.totalRevenue || payload.orders?.totalRevenue || 0).label.split('·')[0]||'').trim();
+
+  let h = '';
+
+  if(isMock){
+    // Estado "acumulando datos" — sin backend aún no hay muestra real.
+    h += `<div class="kpi-grid-3">
+      ${kpi({label:'Tu industria', value:escapeHtml(industryLabel), icon:'tag', color:'blue'})}
+      ${kpi({label:'Tu tamaño', value:escapeHtml(sizeLabel), icon:'scale', color:'green'})}
+      ${kpi({label:'Tu contribución', value:'Registrada ✓', sub:'se enviará al backend', icon:'star', color:'amber'})}
+    </div>`;
+
+    h += `<div class="panel" style="padding:48px 32px;text-align:center;background:linear-gradient(180deg,#fff 0%,#F8FAFC 100%)">
+      <div style="width:64px;height:64px;border-radius:14px;background:var(--brand-soft, #DBEAFE);color:var(--brand-text, #1D4ED8);display:flex;align-items:center;justify-content:center;margin:0 auto 18px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:28px;height:28px"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="4" width="3" height="14"/></svg>
+      </div>
+      <h3 style="font-size:18px;font-weight:600;color:#0F172A;margin-bottom:10px;letter-spacing:-.01em">Datos referenciales — próximamente</h3>
+      <p style="font-size:13px;color:#475569;line-height:1.7;max-width:560px;margin:0 auto 22px">
+        Estamos acumulando contribuciones anónimas del sector <b>${escapeHtml(industryLabel)}</b> (tamaño <b>${escapeHtml(sizeLabel.toLowerCase())}</b>).
+        Cuando tengamos suficientes tiendas comparables, verás aquí tus percentiles reales para las siguientes métricas:
+      </p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;max-width:640px;margin:0 auto 24px;text-align:left">
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:8px;padding:10px 14px;font-size:12px;color:#334155">📊 Ticket promedio</div>
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:8px;padding:10px 14px;font-size:12px;color:#334155">🛒 Items por pedido</div>
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:8px;padding:10px 14px;font-size:12px;color:#334155">📦 % pedidos mono-producto</div>
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:8px;padding:10px 14px;font-size:12px;color:#334155">🔄 % clientes recurrentes</div>
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:8px;padding:10px 14px;font-size:12px;color:#334155">⭐ Concentración VIP (top 10%)</div>
+        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:8px;padding:10px 14px;font-size:12px;color:#334155">📈 Concentración Pareto</div>
+      </div>
+      <div style="background:#ECFDF5;border:1px solid #A7F3D0;border-radius:8px;padding:12px 18px;font-size:12px;color:#065F46;max-width:520px;margin:0 auto;line-height:1.6">
+        <b>Tu contribución anónima ya está registrada.</b><br>
+        Gracias por ser parte del ${escapeHtml(CONFIG.studyName)}.
+      </div>
+    </div>`;
+    return h;
+  }
+
+  // Modo backend conectado — renderiza percentiles reales
+  const bench = MOCK_BENCHMARKS[industry] || MOCK_BENCHMARKS._default;
   const yourAvgTicket   = payload.orders    ? payload.orders.avgTicket             : null;
   const yourRecurring   = payload.customers ? payload.customers.recurringPctOfActive: null;
   const yourPareto      = payload.products  ? payload.products.pareto80Pct          : null;
@@ -1796,13 +1833,9 @@ function viewBenchmark(){
   const yourTop10Share  = payload.customers ? payload.customers.top10PctShare*100   : null;
   const yourItemsPerOrd = payload.orders    ? payload.orders.avgItemsPerOrder       : null;
 
-  let h = '';
-  if(isMock){
-    h += `<div class="insight warn"><b>Modo demo:</b> el backend del estudio aún no está conectado, los percentiles que ves son de referencia (mock). Una vez que Lima Retail configure el servidor, los números vendrán de contribuciones reales. Tu contribución anónima ya está encolada y se enviará automáticamente cuando el backend esté listo.</div>`;
-  }
   h += `<div class="kpi-grid-3">
     ${kpi({label:'Tu industria', value:escapeHtml(industryLabel), icon:'tag', color:'blue'})}
-    ${kpi({label:'Tu tamaño', value:escapeHtml((sizeBucketFromRevenue(payload.products?.totalRevenue || payload.orders?.totalRevenue || 0).label.split('·')[0]||'').trim()), icon:'scale', color:'green'})}
+    ${kpi({label:'Tu tamaño', value:escapeHtml(sizeLabel), icon:'scale', color:'green'})}
     ${kpi({label:'Muestra del sector', value:fmt(bench.sampleSize), sub:'tiendas comparables', icon:'people', color:'amber'})}
   </div>`;
 
