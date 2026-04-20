@@ -152,13 +152,13 @@ function parseOrders(rows){
     date:     findCol(header, ['Fecha del pedido','Fecha de pedido','Fecha','Date','Order date','Fecha de compra']),
     status:   findCol(header, ['Estado','Status','Estado del pedido']),
     product:  findCol(header, ['Nombre del artículo','Nombre del articulo','Nombre del producto','Nombre producto','Producto','Product','Product name','Product Name','Line item name','Item','Artículo','Articulo','Item name','Name']),
-    qty:      findCol(header, ['Cantidad','Quantity','Qty','Items sold','Unidades','Cant','Cantidades','Número de unidades']),
-    total:    findCol(header, ['Coste de artículo','Coste de articulo','Importe total','Importe','Monto total','Monto','Total línea','Total linea','Line total','Line Total','Net sales','Subtotal','Subtotal del artículo','Coste','Costo','Precio total','Precio','Price','Unit price','Precio unitario','Price per unit','Amount','Valor']),
+    qty:      findCol(header, ['Cantidad','Quantity','Qty','Items sold','Unidades','Cant','Cantidades','Número de unidades','Artículos vendidos','Articulos vendidos']),
+    total:    findCol(header, ['Ingresos netos (con formato)','Ingresos netos','Ventas netas','Coste de artículo','Coste de articulo','Importe total','Importe','Monto total','Monto','Total línea','Total linea','Line total','Line Total','Net sales','Subtotal','Subtotal del artículo','Coste','Costo','Precio total','Precio','Price','Unit price','Precio unitario','Price per unit','Amount','Valor','Total']),
     customer: findCol(header, ['Correo electrónico (facturación)','Correo electrónico','Email','Customer email','Correo','Cliente','Email del cliente','E-mail','Customer']),
     firstName:findCol(header, ['Nombre (facturación)','Nombre','First name','Customer first name','Billing first name']),
     lastName: findCol(header, ['Apellidos (facturación)','Apellidos','Last name','Customer last name','Billing last name']),
     phone:    findCol(header, ['Teléfono (facturación)','Teléfono','Telefono','Phone','Celular','Mobile']),
-    products: findCol(header, ['Productos','Products','Product(s)','Artículos','Line items'])
+    products: findCol(header, ['Producto(s)','Productos','Products','Product(s)','Artículos','Articulos','Line items'])
   };
 
   // Debug info: expone qué columnas se detectaron para poder diagnosticar problemas
@@ -239,14 +239,38 @@ function parseOrders(rows){
       const joined = String(r[col.products]||'').trim();
       if(!joined) continue;
       const total = col.total >= 0 ? toNumber(r[col.total]) : 0;
-      const parts = joined.split(/\s*[|;]\s*|\s*,(?=\s*(?:\d+\s*x|\w))/);
-      const n = parts.length;
+      // WooCommerce Analytics concatena: "Producto A × 2, Producto B × 1"
+      // El × (U+00D7) y x/X aparecen como multiplicador. Separador típico: coma, pipe o punto y coma.
+      // Dividimos por el separador pero solo cuando la parte siguiente parece un nombre de producto
+      // (para no confundir comas internas del nombre).
+      const parts = joined.split(/\s*[|;]\s*|\s*,(?=\s*[A-ZÁÉÍÓÚÑ\d])/);
+      const n = parts.length || 1;
+      let distributedTotal = 0;
+      const items = [];
       for(const p of parts){
-        if(!p.trim()) continue;
-        const m = p.match(/^\s*(\d+)\s*x\s*(.+)$/i);
-        const qty = m ? toNumber(m[1]) : 1;
-        const name = m ? m[2].trim() : p.trim();
-        lineItems.push({ orderId: oid, date, product: name, qty, total: total/n, customer, status });
+        const trimmed = p.trim();
+        if(!trimmed) continue;
+        // Match: "Name × N" o "N × Name" o "Name x N" o "Name (#123) × N"
+        let qty = 1, name = trimmed;
+        const m1 = trimmed.match(/^(.+?)\s*[×xX]\s*(\d+)\s*$/);
+        const m2 = trimmed.match(/^(\d+)\s*[×xX]\s*(.+)$/);
+        if(m1){ name = m1[1].trim(); qty = toNumber(m1[2]) || 1; }
+        else if(m2){ qty = toNumber(m2[1]) || 1; name = m2[2].trim(); }
+        // Limpia sufijos tipo "(#123)" al final
+        name = name.replace(/\s*\(#\d+\)\s*$/,'').trim();
+        if(!name) continue;
+        items.push({ name, qty });
+      }
+      // Total se distribuye proporcionalmente por qty para que la suma del pedido sea exacta
+      const sumQty = items.reduce((a,i)=>a+i.qty, 0) || 1;
+      for(const it of items){
+        const lineTotal = total * (it.qty / sumQty);
+        distributedTotal += lineTotal;
+        lineItems.push({ orderId: oid, date, product: it.name, qty: it.qty, total: lineTotal, customer, status });
+      }
+      // Si nada se pudo parsear, al menos crea una línea con el total para no perder ingresos
+      if(!items.length && total > 0){
+        lineItems.push({ orderId: oid, date, product: joined, qty: 1, total, customer, status });
       }
     }
   }
