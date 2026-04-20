@@ -10,7 +10,8 @@ const state = {
   view: 'resumen',
   periodLabel: '',
   calendarYear: null,
-  calendarMetric: 'orders'
+  calendarMetric: 'orders',
+  ordersWarning: null
 };
 
 // ===== Config del estudio =====
@@ -352,6 +353,7 @@ function render(){
   if(!hasAnyData()){
     content.appendChild(renderDropHero());
   } else {
+    if(state.ordersWarning) content.appendChild(renderOrdersWarning());
     content.appendChild(renderPeriodRow());
     content.appendChild(renderView());
     setTimeout(bindPostRender, 0);
@@ -487,7 +489,7 @@ function renderTopbar(){
     state.productsFile=null; state.productsData=null; state.productsStats=null;
     state.ordersFile=null; state.ordersData=null; state.ordersStats=null;
     state.customersFile=null; state.customersData=null; state.customersStats=null;
-    state.periodLabel=''; state.view='resumen';
+    state.periodLabel=''; state.view='resumen'; state.ordersWarning=null;
     clearStoredState();
     render();
   };
@@ -562,6 +564,20 @@ function renderDropHero(){
   return wrap;
 }
 
+function renderOrdersWarning(){
+  const w = state.ordersWarning;
+  const el = document.createElement('div');
+  el.className = 'insight warn';
+  el.style.cssText = 'margin-bottom:14px;font-size:12px';
+  el.innerHTML = `
+    <b>Atención — el archivo de pedidos tiene columnas faltantes:</b> ${w.missing.map(m=>`<code style="background:#fff;padding:1px 6px;border-radius:4px">${escapeHtml(m)}</code>`).join(' ')}.
+    Por eso algunos valores salen en 0 (ingresos, ticket, etc.).<br>
+    <b>Columnas detectadas en tu archivo:</b> ${(w.header||[]).map(h=>`<code style="background:#fff;padding:1px 6px;border-radius:4px;margin:1px 2px;display:inline-block">${escapeHtml(h)}</code>`).join('')}.<br>
+    Copia una columna que contenga el precio/total y dímela — amplío el parser. Si ya existe alguna de estas y no se detectó, avísame: <i>Coste, Importe, Monto, Total, Precio, Subtotal, Line total, Price</i>.
+  `;
+  return el;
+}
+
 function renderPeriodRow(){
   const el = document.createElement('div');
   el.className = 'period-row';
@@ -599,7 +615,15 @@ function handleFile(file, onDone){
         state.ordersFile = { name: file.name };
         state.ordersData = ord;
         state.ordersStats = analyzeOrders(ord.lineItems);
-        showToast(`Pedidos cargados: ${state.ordersStats.totals.totalOrders}`, 'ok');
+        // Warn si el parser no detectó columna crítica
+        const dbg = window.__lastOrdersColumns || {};
+        if(dbg.missing && dbg.missing.length){
+          state.ordersWarning = dbg;
+          showToast(`Pedidos cargados pero faltan columnas: ${dbg.missing.join(', ')}. Revisa el banner amarillo.`, 'err');
+        } else {
+          state.ordersWarning = null;
+          showToast(`Pedidos cargados: ${state.ordersStats.totals.totalOrders}`, 'ok');
+        }
       } else if(type === 'customers'){
         const cust = parseCustomers(rows);
         if(!cust.length){ showToast(`${file.name}: no pude leer clientes`, 'err'); onDone && onDone(); return; }
@@ -906,13 +930,46 @@ function viewProductos(){
   const s = state.productsStats;
   const top = s.top.slice(0, 15);
   let h = `<div class="panel">
-    <div class="panel-head"><div><div class="panel-title">Top 15 por ingresos</div><div class="panel-sub">Ranking completo de productos con ventas</div></div></div>
+    <div class="panel-head"><div><div class="panel-title">Top 15 por ingresos</div><div class="panel-sub">Productos que más facturan en el periodo. Son tus "vacas lecheras".</div></div></div>
     ${hBar(top.map(p=>({label:p.title, value:p.revenue})), {color:COLORS.blue, valueFormatter:fmtMoney, maxRows:15})}
   </div>`;
   h += `<div class="panel">
-    <div class="panel-head"><div class="panel-title">Top 15 por unidades</div></div>
+    <div class="panel-head"><div><div class="panel-title">Top 15 por unidades</div><div class="panel-sub">Productos con mayor rotación en cantidad. No siempre los que más facturan — a veces son los de precio bajo.</div></div></div>
     ${hBar([...s.top].sort((a,b)=>b.sold-a.sold).slice(0,15).map(p=>({label:p.title, value:p.sold})), {color:COLORS.green, valueFormatter:fmt, maxRows:15})}
   </div>`;
+
+  // Panel enriquecido con datos de pedidos (solo si hay ordersStats)
+  if(state.ordersStats && state.ordersData){
+    const enriched = enrichProductsWithOrders(s.top, state.ordersData.lineItems, state.ordersStats);
+    h += `<div class="panel">
+      <div class="panel-head"><div><div class="panel-title">Cruce productos × pedidos</div><div class="panel-sub">Datos combinados del CSV de Productos con tu archivo de Pedidos: ticket promedio del pedido que contiene cada producto, frecuencia y el producto con el que más se compra junto.</div></div></div>
+      <div style="max-height:520px;overflow:auto"><table>
+        <thead><tr>
+          <th>#</th><th>Producto</th>
+          <th class="r">Pedidos</th>
+          <th class="r">Frec. compra</th>
+          <th class="r">Ticket prom. pedido</th>
+          <th>Se compra con…</th>
+        </tr></thead>
+        <tbody>
+        ${enriched.slice(0,30).map((p,i)=>`<tr>
+          <td style="color:#94A3B8">${i+1}</td>
+          <td>${escapeHtml(truncate(p.title,42))}</td>
+          <td class="r">${fmt(p.orderCount)}</td>
+          <td class="r">${fmt(p.frequencyPct,1)}%</td>
+          <td class="r" style="font-weight:600">${p.avgOrderTicket?fmtMoney(p.avgOrderTicket):'—'}</td>
+          <td style="font-size:11px;color:#64748B">${p.coPurchase ? escapeHtml(truncate(p.coPurchase.name, 32)) + ` <span style="color:#94A3B8">· ${p.coPurchase.count}×</span>` : '<span style="color:#94A3B8">mono-producto</span>'}</td>
+        </tr>`).join('')}
+        </tbody>
+      </table></div>
+      <div style="font-size:11px;color:#94A3B8;margin-top:10px;line-height:1.5">
+        <b>Frec. compra</b> = % de pedidos totales que contienen este producto.
+        <b>Ticket prom. pedido</b> = valor promedio del pedido completo cuando incluye este producto (indica si atrae compras grandes o chicas).
+        <b>Se compra con</b> = producto co-comprado más frecuente.
+      </div>
+    </div>`;
+  }
+
   h += `<div class="panel">
     <div class="panel-head"><div class="panel-title">Tabla completa</div><div class="panel-meta">${s.top.length} productos</div></div>
     <div style="max-height:520px;overflow:auto"><table>
@@ -931,6 +988,62 @@ function viewProductos(){
     </table></div>
   </div>`;
   return h;
+}
+
+// Cruza datos de productos (CSV) con líneas de pedido para calcular:
+//  - orderCount: pedidos únicos que contienen el producto
+//  - frequencyPct: % de pedidos totales con el producto
+//  - avgOrderTicket: ticket promedio de pedidos que contienen el producto
+//  - coPurchase: producto co-comprado más frecuente
+// Matching: normaliza nombres (minúsculas, sin sufijos de variación "- 24M", etc.)
+function enrichProductsWithOrders(products, lineItems, ordersStats){
+  const normalize = s => String(s||'').toLowerCase().replace(/\s*[-–—]\s*\d+[aAmM].*$/,'').replace(/\s+/g,' ').trim();
+  // Agrupa por orderId
+  const orderMap = new Map();
+  for(const li of lineItems){
+    if(!orderMap.has(li.orderId)) orderMap.set(li.orderId, { orderId: li.orderId, items: [], total: 0 });
+    const o = orderMap.get(li.orderId);
+    o.items.push(li);
+    o.total += li.total;
+  }
+  const totalOrders = orderMap.size || 1;
+  // Indexa producto → orderIds
+  const productOrders = new Map();
+  for(const [oid, o] of orderMap){
+    const seen = new Set();
+    for(const it of o.items){
+      const k = normalize(it.product);
+      if(seen.has(k)) continue;
+      seen.add(k);
+      if(!productOrders.has(k)) productOrders.set(k, { orders: new Set(), sumTicket: 0 });
+      productOrders.get(k).orders.add(oid);
+      productOrders.get(k).sumTicket += o.total;
+    }
+  }
+  return products.map(p => {
+    const key = normalize(p.title);
+    const entry = productOrders.get(key);
+    if(!entry){
+      return { ...p, orderCount: 0, frequencyPct: 0, avgOrderTicket: 0, coPurchase: null };
+    }
+    // Co-purchase: busca en pairs de ordersStats, encuentra el par top con este producto
+    let coPurchase = null;
+    if(ordersStats && ordersStats.pairs){
+      const matched = ordersStats.pairs.filter(pp => normalize(pp.a) === key || normalize(pp.b) === key);
+      if(matched.length){
+        const top = matched[0];
+        const otherName = normalize(top.a) === key ? top.b : top.a;
+        coPurchase = { name: otherName, count: top.count, lift: top.lift };
+      }
+    }
+    return {
+      ...p,
+      orderCount: entry.orders.size,
+      frequencyPct: (entry.orders.size / totalOrders) * 100,
+      avgOrderTicket: entry.orders.size ? entry.sumTicket / entry.orders.size : 0,
+      coPurchase
+    };
+  });
 }
 
 function viewCategorias(){
@@ -1007,16 +1120,16 @@ function viewDistribucion(){
   const revItems = Object.entries(revB).map(([k,v])=>({label:k, value:v}));
   let h = `<div class="panel-grid">
     <div class="panel">
-      <div class="panel-head"><div class="panel-title">Productos por nº de pedidos</div></div>
+      <div class="panel-head"><div><div class="panel-title">Productos por nº de pedidos</div><div class="panel-sub">Cuántos productos caen en cada bucket de pedidos. Muchos en "1" = catálogo sin rotación, pocos con 11+.</div></div></div>
       ${vBar(distItems, {color:COLORS.blue})}
     </div>
     <div class="panel">
-      <div class="panel-head"><div class="panel-title">Productos por unidades vendidas</div></div>
+      <div class="panel-head"><div><div class="panel-title">Productos por unidades vendidas</div><div class="panel-sub">Distribución de unidades por producto. Identifica tu long-tail vs. productos estrella.</div></div></div>
       ${vBar(unitsItems, {color:COLORS.green})}
     </div>
   </div>`;
   h += `<div class="panel">
-    <div class="panel-head"><div class="panel-title">Productos por tramo de ingresos (S/)</div></div>
+    <div class="panel-head"><div><div class="panel-title">Productos por tramo de ingresos (S/)</div><div class="panel-sub">Segmentación del catálogo por facturación. Concentración en tramos altos = pocos productos llevan el negocio.</div></div></div>
     ${vBar(revItems, {color:COLORS.amber, valueFormatter:fmt})}
   </div>`;
   h += `<div class="insight info"><b>Lectura:</b> <b>${buckets['1']}</b> productos vendieron en 1 solo pedido · <b>${buckets['0']}</b> no vendieron nada. Ataca los de 1 pedido con cross-sell y evalúa si los de 0 merecen seguir en el catálogo.</div>`;

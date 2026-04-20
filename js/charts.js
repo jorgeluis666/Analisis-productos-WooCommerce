@@ -144,7 +144,7 @@ function donut(items, opts={}){
     legend += `<span><span class="dot" style="background:${color}"></span>${escapeHtml(r.label)} · ${pct}%</span>`;
   });
   legend += '</div>';
-  return `<svg class="chart-svg" width="${width}" height="${width}" viewBox="0 0 ${width} ${width}">${paths}</svg>${legend}`;
+  return `<svg class="chart-svg chart-svg-center" width="${width}" height="${width}" viewBox="0 0 ${width} ${width}">${paths}</svg>${legend}`;
 }
 
 // Year heatmap calendar (GitHub-style). byDay: [{date:'YYYY-MM-DD', orders, revenue}].
