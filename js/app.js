@@ -805,16 +805,16 @@ function viewResumen(){
   // Pareto + top por ingresos/unidades (products)
   if(sP){
     h += `<div class="panel">
-      <div class="panel-head"><div><div class="panel-title">Curva Pareto — concentración de ingresos (productos)</div><div class="panel-sub">Top 30 · barra azul = ingresos, línea ámbar = acumulado</div></div></div>
+      <div class="panel-head"><div><div class="panel-title">Curva Pareto — concentración de ingresos</div><div class="panel-sub">Ordena tus productos del que más factura al que menos. La línea ámbar muestra el <b>% acumulado</b>: dónde cruza el 80% son los productos que cargan con tu negocio. Si son pocos, dependes de ellos; si la línea sube despacio, tienes un catálogo equilibrado.</div></div></div>
       <div class="chart-wrap">${paretoChart(sP.top)}</div>
     </div>`;
     h += `<div class="panel-grid">
       <div class="panel">
-        <div class="panel-head"><div class="panel-title">Top 10 productos por ingresos</div></div>
+        <div class="panel-head"><div><div class="panel-title">Top 10 productos por ingresos</div><div class="panel-sub">Los 10 que más dinero generaron en el periodo. Son tus "vacas lecheras" — cuida stock, fotos y precio. Si pierdes uno, duele.</div></div></div>
         ${hBar(sP.top.slice(0,10).map(p=>({label:p.title, value:p.revenue})), {color:COLORS.blue, valueFormatter:fmtMoney, maxRows:10})}
       </div>
       <div class="panel">
-        <div class="panel-head"><div class="panel-title">Top 10 productos por unidades</div></div>
+        <div class="panel-head"><div><div class="panel-title">Top 10 productos por unidades</div><div class="panel-sub">Los 10 con más rotación en cantidad. No siempre son los que más facturan — suelen ser los de precio bajo. Úsalos como "imán" para atraer nuevos clientes y venderles arriba.</div></div></div>
         ${hBar([...sP.top].sort((a,b)=>b.sold-a.sold).slice(0,10).map(p=>({label:p.title, value:p.sold})), {color:COLORS.green, valueFormatter:fmt, maxRows:10})}
       </div>
     </div>`;
@@ -1055,16 +1055,16 @@ function viewCategorias(){
   const cats = s.byCategory.slice(0, 15);
   let h = `<div class="panel-grid">
     <div class="panel">
-      <div class="panel-head"><div class="panel-title">Top 15 por ingresos</div></div>
+      <div class="panel-head"><div><div class="panel-title">Top 15 por ingresos</div><div class="panel-sub">Categorías que más facturan. Úsalas como hero en la home y como campañas principales de ads. Son tu foco de marketing.</div></div></div>
       ${hBar(cats.map(c=>({label:c.category, value:c.revenue})), {color:COLORS.blue, valueFormatter:fmtMoney, maxRows:15})}
     </div>
     <div class="panel">
-      <div class="panel-head"><div class="panel-title">Top 15 por unidades</div></div>
+      <div class="panel-head"><div><div class="panel-title">Top 15 por unidades</div><div class="panel-sub">Categorías con más rotación. Si una tiene muchas unidades pero baja facturación, el precio está bajo o son productos de "entrada".</div></div></div>
       ${hBar([...s.byCategory].sort((a,b)=>b.units-a.units).slice(0,15).map(c=>({label:c.category, value:c.units})), {color:COLORS.green, valueFormatter:v=>fmt(v,1), maxRows:15})}
     </div>
   </div>`;
   h += `<div class="panel">
-    <div class="panel-head"><div class="panel-title">Share de ingresos — top 6 categorías</div></div>
+    <div class="panel-head"><div><div class="panel-title">Share de ingresos — top 6 categorías</div><div class="panel-sub">Visualiza cuánto aporta cada categoría al total. Un solo color dominante = negocio concentrado; varios equilibrados = catálogo diversificado.</div></div></div>
     ${donut(s.byCategory.slice(0,6).map(c=>({label:c.category, value:c.revenue})))}
   </div>`;
   h += `<div class="panel">
@@ -1504,16 +1504,16 @@ function viewTemporal(){
   const xKey = useMonth ? 'month' : 'date';
   h += `<div class="panel-grid">
     <div class="panel">
-      <div class="panel-head"><div class="panel-title">Ingresos por ${useMonth?'mes':'día'}</div></div>
+      <div class="panel-head"><div><div class="panel-title">Ingresos por ${useMonth?'mes':'día'}</div><div class="panel-sub">Evolución temporal de tu facturación. Busca picos (eventos, lanzamientos, campañas) y valles (épocas muertas donde deberías activar promos).</div></div></div>
       ${lineChart(series.map(d=>({x:d[xKey].slice(useMonth?0:5), y:d.revenue})), {color:COLORS.blue, valueFormatter:fmtMoney})}
     </div>
     <div class="panel">
-      <div class="panel-head"><div class="panel-title">Pedidos por ${useMonth?'mes':'día'}</div></div>
+      <div class="panel-head"><div><div class="panel-title">Pedidos por ${useMonth?'mes':'día'}</div><div class="panel-sub">Cantidad de transacciones en el tiempo. Si los ingresos suben pero los pedidos no = ticket subió. Si pedidos suben pero ingresos no = tickets más chicos.</div></div></div>
       ${lineChart(series.map(d=>({x:d[xKey].slice(useMonth?0:5), y:d.orders})), {color:COLORS.green})}
     </div>
   </div>`;
   h += `<div class="panel">
-    <div class="panel-head"><div class="panel-title">Ingresos por día de la semana</div></div>
+    <div class="panel-head"><div><div class="panel-title">Ingresos por día de la semana</div><div class="panel-sub">Qué días vende mejor tu tienda. Concentra email blast, ads boost y promos en el día pico. Desactiva descuentos en el día flojo (no empujes sin demanda).</div></div></div>
     ${vBar(s.byDow.map(d=>({label:d.name, value:d.revenue})), {color:COLORS.amber, valueFormatter:fmtMoney})}
   </div>`;
   const bestDay = [...s.byDay].sort((a,b)=>b.revenue-a.revenue)[0];
@@ -1539,7 +1539,7 @@ function viewBasket(){
     return h;
   }
   h += `<div class="panel">
-    <div class="panel-head"><div><div class="panel-title">Top 30 pares de productos co-comprados</div><div class="panel-sub">Ordenados por frecuencia · muestra asociaciones reales en mismo pedido</div></div></div>
+    <div class="panel-head"><div><div class="panel-title">Top 30 pares de productos co-comprados</div><div class="panel-sub">Qué productos se compran juntos en el mismo pedido. Los pares con lift ≥1.5 y 3+ co-compras son candidatos ideales para armar bundles, poner "compra junto" en la ficha, o aparecer en el carrito como recomendación.</div></div></div>
     <div style="max-height:540px;overflow:auto"><table>
       <thead><tr><th>#</th><th>Producto A</th><th>Producto B</th><th class="r">Juntos</th><th class="r">Lift</th><th class="r">Confianza</th></tr></thead>
       <tbody>
@@ -1572,11 +1572,11 @@ function viewTicket(){
   </div>`;
   h += `<div class="panel-grid">
     <div class="panel">
-      <div class="panel-head"><div class="panel-title">Distribución de pedidos por nº de productos distintos</div></div>
+      <div class="panel-head"><div><div class="panel-title">Distribución de pedidos por nº de productos distintos</div><div class="panel-sub">Cuántos pedidos tienen 1, 2, 3+ productos. Si "1" es muy alto, tu cliente compra "de una" y se va — hay oportunidad enorme en cross-sell y bundles.</div></div></div>
       ${vBar(dist, {color:COLORS.blue})}
     </div>
     <div class="panel">
-      <div class="panel-head"><div class="panel-title">Ticket promedio por tamaño de pedido</div></div>
+      <div class="panel-head"><div><div class="panel-title">Ticket promedio por tamaño de pedido</div><div class="panel-sub">Cuánto vale un pedido según cuántos productos tenga. Normal: más productos = ticket mayor. Si no crece lineal, los productos extra son de bajo valor.</div></div></div>
       ${vBar(bySize.map(b=>({label:b.size+' p.', value:b.avgTicket})), {color:COLORS.green, valueFormatter:fmtMoney})}
     </div>
   </div>`;
@@ -1625,20 +1625,20 @@ function viewClientesFromCSV(){
   }
   h += `<div class="panel-grid">
     <div class="panel">
-      <div class="panel-head"><div class="panel-title">Distribución de pedidos por cliente</div></div>
+      <div class="panel-head"><div><div class="panel-title">Distribución de pedidos por cliente</div><div class="panel-sub">Cuántos clientes compraron 1, 2, 3+ veces. Si "1" domina, tu tasa de recompra es baja — invierte en email de fidelización y programas de referidos.</div></div></div>
       ${vBar(Object.entries(s.orderBuckets).map(([k,v])=>({label:k, value:v})), {color:COLORS.blue})}
     </div>
     <div class="panel">
-      <div class="panel-head"><div class="panel-title">Distribución de VMP (S/ por pedido)</div></div>
+      <div class="panel-head"><div><div class="panel-title">Distribución de VMP (S/ por pedido)</div><div class="panel-sub">VMP = valor medio por pedido. Qué tan grandes son los tickets de tus clientes. Muchos en tramos bajos = oportunidad de upsell; muchos altos = clientes premium cuidar.</div></div></div>
       ${vBar(Object.entries(s.vmpBuckets).map(([k,v])=>({label:k, value:v})), {color:COLORS.green})}
     </div>
   </div>`;
   h += `<div class="panel">
-    <div class="panel-head"><div><div class="panel-title">Top 15 clientes por gasto</div><div class="panel-sub">Extraído directamente del CSV</div></div></div>
+    <div class="panel-head"><div><div class="panel-title">Top 15 clientes por gasto</div><div class="panel-sub">Tus clientes VIP por facturación total. Estos son los que menos puedes perder. Considera programa exclusivo: envío gratis, acceso anticipado, regalo en cada pedido grande.</div></div></div>
     ${hBar(s.topByRevenue.slice(0,15).map(c=>({label:(c.name||c.email), value:c.totalSpend})), {color:COLORS.blue, valueFormatter:fmtMoney, maxRows:15})}
   </div>`;
   h += `<div class="panel">
-    <div class="panel-head"><div class="panel-title">Top 15 clientes por nº de pedidos</div></div>
+    <div class="panel-head"><div><div class="panel-title">Top 15 clientes por nº de pedidos</div><div class="panel-sub">Los que más seguido te compran. Pueden no ser los de mayor gasto, pero su fidelidad es oro. Úsalos como embajadores, invítalos a beta de nuevos productos.</div></div></div>
     ${hBar(s.topByOrders.slice(0,15).map(c=>({label:(c.name||c.email), value:c.orders})), {color:COLORS.green, valueFormatter:fmt, maxRows:15})}
   </div>`;
   h += `<div class="panel">
@@ -1756,7 +1756,7 @@ function viewRecencia(){
     ${kpi({label:'En riesgo', value:fmt(s.atRisk.length), sub:'2+ pedidos, inactivos >90d', icon:'alert', color:'purple'})}
   </div>`;
   h += `<div class="panel">
-    <div class="panel-head"><div><div class="panel-title">Recencia — días desde última actividad</div><div class="panel-sub">Buckets de tiempo desde la última sesión del cliente</div></div></div>
+    <div class="panel-head"><div><div class="panel-title">Recencia — días desde última actividad</div><div class="panel-sub">Distribuye tu base de clientes según hace cuánto no entran a la tienda. Verde = activos (sigue cuidándolos), ámbar = tibios (enfriándose, mándales algo), rojo = dormidos (win-back con descuento agresivo).</div></div></div>
     ${vBar(Object.entries(r).map(([k,v])=>({label:k, value:v, color: k==='0–7d'||k==='8–30d'?'#059669' : k==='31–90d'?'#D97706' : k==='nunca'?'#64748B':'#DC2626'})), {color:COLORS.blue})}
   </div>`;
   if(s.atRisk.length){
