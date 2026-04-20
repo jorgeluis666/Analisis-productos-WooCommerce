@@ -344,10 +344,14 @@ function showConsentModal(){
 
 function render(){
   root.innerHTML = '';
-  root.appendChild(renderSidebar());
+  // Topbar global full-width
+  root.appendChild(renderTopbar());
+  // Body: sidebar + main en fila
+  const body = document.createElement('div');
+  body.className = 'app-body';
+  body.appendChild(renderSidebar());
   const main = document.createElement('div');
   main.className = 'main';
-  main.appendChild(renderTopbar());
   const content = document.createElement('div');
   content.className = 'content';
   if(!hasAnyData()){
@@ -359,7 +363,8 @@ function render(){
     setTimeout(bindPostRender, 0);
   }
   main.appendChild(content);
-  root.appendChild(main);
+  body.appendChild(main);
+  root.appendChild(body);
 }
 
 function bindPostRender(){
@@ -415,10 +420,6 @@ function renderSidebar(){
   `).join('');
 
   el.innerHTML = `
-    <div class="sidebar-brand">
-      <div class="title">WC Sales Analyzer</div>
-      <div class="subtitle">Productos + Pedidos</div>
-    </div>
     ${sectionHtml}
     <div class="sidebar-footer">Procesamiento 100% local · no sube datos</div>
   `;
@@ -431,26 +432,29 @@ function renderSidebar(){
 
 function renderTopbar(){
   const el = document.createElement('div');
-  el.className = 'topbar';
+  el.className = 'app-topbar';
   const hasAny = hasAnyData();
-  const title = hasAny ? viewTitle(state.view) : 'WooCommerce Sales Analyzer';
-  let subtitle;
+  const sectionTitle = hasAny ? viewTitle(state.view) : 'Carga tus archivos para empezar';
+
+  const pills = [];
   if(hasAny){
-    const parts = [];
-    if(state.periodLabel) parts.push(`<span class="topbar-pill">${ICON.calendar}${escapeHtml(state.periodLabel)}</span>`);
-    if(state.productsData) parts.push(`<span class="topbar-pill">${ICON.box}${fmt(state.productsData.length)} productos</span>`);
-    if(state.ordersData) parts.push(`<span class="topbar-pill">${ICON.cart}${fmt(state.ordersStats.totals.totalOrders)} pedidos · ${fmt(state.ordersStats.totals.lineItems)} líneas</span>`);
-    if(state.customersData) parts.push(`<span class="topbar-pill">${ICON.people}${fmt(state.customersData.length)} clientes</span>`);
-    subtitle = parts.join('');
-  } else {
-    subtitle = 'Análisis de ventas e-commerce · Productos + Pedidos';
+    if(state.periodLabel) pills.push(`<span class="topbar-pill">${ICON.calendar}${escapeHtml(state.periodLabel)}</span>`);
+    if(state.productsData) pills.push(`<span class="topbar-pill">${ICON.box}${fmt(state.productsData.length)} productos</span>`);
+    if(state.ordersData) pills.push(`<span class="topbar-pill">${ICON.cart}${fmt(state.ordersStats.totals.totalOrders)} pedidos · ${fmt(state.ordersStats.totals.lineItems)} líneas</span>`);
+    if(state.customersData) pills.push(`<span class="topbar-pill">${ICON.people}${fmt(state.customersData.length)} clientes</span>`);
   }
+
   el.innerHTML = `
-    <div class="topbar-left">
-      <div class="topbar-title">${escapeHtml(title)}</div>
-      <div class="topbar-sub">${subtitle}</div>
+    <div class="app-brand">
+      Análisis de Ventas, Productos y Clientes
+      <div class="app-brand-sub">Lima Retail · WooCommerce Analyzer</div>
     </div>
-    <div class="topbar-right">
+    <div class="app-topbar-divider"></div>
+    <div class="app-section">
+      <div class="app-section-title">${escapeHtml(sectionTitle)}</div>
+      ${pills.length ? `<div class="app-section-meta">${pills.join('')}</div>` : ''}
+    </div>
+    <div class="app-topbar-right">
       ${hasAny ? `<button class="btn" id="btn-upload">${ICON.upload}<span>Subir archivo</span></button>
                   <button class="btn" id="btn-gs">${ICON.sheet}<span>Google Sheets</span></button>
                   <button class="btn" id="btn-study" title="Configurar participación en el estudio">${ICON.people}<span>${hasOptedIn()?'Estudio ✓':'Estudio'}</span></button>

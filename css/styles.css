@@ -4,17 +4,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Helvetica,s
 button,input,select,textarea{font-family:inherit}
 
 /* ===== Layout shell ===== */
-#app{min-height:100%;display:flex}
-/* In standalone mode fill viewport; in iframe the parent controls height */
+/* Nueva estructura vertical: topbar global arriba + cuerpo (sidebar + main) abajo */
+#app{min-height:100%;display:flex;flex-direction:column}
 @media (min-height: 500px){ #app{ min-height: 100vh } }
-/* Extend sidebar background to full page height via gradient.
-   El elemento .sidebar es sticky + max-height:100vh, entonces su fondo no llega
-   al final en páginas largas. Este gradient pinta una franja oscura permanente
-   en los primeros 240px del contenedor. Se desactiva en mobile (layout columna). */
+
+/* ===== App topbar (full width, global) ===== */
+.app-topbar{display:flex;align-items:center;gap:14px;padding:14px 28px;background:#fff;border-bottom:1px solid var(--border,#E2E8F0);flex-wrap:wrap;position:sticky;top:0;z-index:100}
+.app-brand{font-size:15px;font-weight:600;color:#0F172A;letter-spacing:-.01em;white-space:nowrap}
+.app-brand-sub{font-size:11px;color:#94A3B8;font-weight:400;letter-spacing:0;text-transform:none;margin-top:1px}
+.app-topbar-divider{width:1px;height:28px;background:#E2E8F0;flex-shrink:0}
+.app-section{display:flex;flex-direction:column;min-width:0}
+.app-section-title{font-size:15px;font-weight:500;color:#334155;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app-section-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:3px}
+.app-topbar-right{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* ===== Body (sidebar + main) ===== */
+.app-body{display:flex;flex:1;min-height:0}
+/* Sidebar background extendido a toda la altura del body para páginas largas */
 @media (min-width: 901px){
-  #app{background:linear-gradient(to right, #0F172A 240px, transparent 240px)}
+  .app-body{background:linear-gradient(to right, #0F172A 240px, transparent 240px)}
 }
-.sidebar{width:240px;background:#0F172A;color:#CBD5E1;flex-shrink:0;display:flex;flex-direction:column;padding:20px 0;position:sticky;top:0;max-height:100vh;overflow:auto;align-self:flex-start}
+.sidebar{width:240px;background:#0F172A;color:#CBD5E1;flex-shrink:0;display:flex;flex-direction:column;padding:20px 0;position:sticky;top:57px;max-height:calc(100vh - 57px);overflow:auto;align-self:flex-start}
 .sidebar-brand{padding:0 20px 18px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:10px}
 .sidebar-brand .title{font-size:15px;font-weight:600;color:#fff;letter-spacing:-.01em}
 .sidebar-brand .subtitle{font-size:11px;color:#64748B;margin-top:2px}
@@ -178,20 +188,23 @@ tr:hover td{background:#FAFBFC}
 
 /* Responsive */
 @media (max-width: 900px){
-  #app{flex-direction:column}
-  .sidebar{width:100%;position:relative;max-height:none;flex-direction:row;flex-wrap:wrap;align-items:center;padding:12px 16px}
-  .sidebar-brand{padding:0 16px 0 0;border:none;margin:0}
+  .app-body{flex-direction:column}
+  .app-topbar{padding:12px 16px}
+  .app-topbar-divider{display:none}
+  .app-brand{font-size:13px}
+  .app-section-title{font-size:13px}
+  .sidebar{width:100%;position:relative;top:0;max-height:none;flex-direction:row;flex-wrap:wrap;align-items:center;padding:12px 16px}
   .sidebar-section{padding:0;flex:1}
   .sidebar-section-lbl{display:none}
   .sidebar-section{display:flex;gap:4px;flex-wrap:wrap}
   .sidebar-item{padding:6px 10px;font-size:12px}
   .sidebar-footer{display:none}
   .content{padding:16px}
-  .topbar{padding:14px 16px}
   .kpi-grid{grid-template-columns:repeat(2,1fr)}
   .kpi-grid-3{grid-template-columns:1fr}
   .panel-grid{grid-template-columns:1fr}
 }
 @media (max-width: 560px){
   .kpi-grid{grid-template-columns:1fr}
+  .app-topbar-right{width:100%;justify-content:flex-end}
 }
