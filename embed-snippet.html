@@ -1,77 +1,186 @@
-<!-- =========================================================
-     SNIPPET PARA EMBEBER EN LIMARETAIL.COM
-     =========================================================
+<!-- ═══════════════════════════════════════════════════════════════════════
+     WooCommerce Sales Analyzer · Embed para Divi (Lima Retail)
+     ═══════════════════════════════════════════════════════════════════════
+     Target page: https://limaretail.com/analisis-de-ventas-en-woocommerce/
+     Tool URL:    https://limaretail.com/woocommerce-analytics/
 
-     PASO 1. SUBIR LA HERRAMIENTA A TU HOSTING
-     ------------------------------------------
-     Sube toda la carpeta "Análisis-productos-WooCommerce" (index.html,
-     /css/, /js/) a tu servidor. Ejemplos de ubicación:
+     Cómo usar:
+     1. Editar la página con Divi.
+     2. Añadir un módulo "Código" (Code) donde quieras el tool.
+     3. Pegar todo este bloque en el textarea del módulo.
+     4. Guardar → Salir del editor → Borrar caché de WP Rocket.
 
-       https://limaretail.com/herramientas/wc-analyzer/
-       https://tools.limaretail.com/wc-analyzer/
-
-     Verifica que abre bien directamente en el navegador antes
-     de embeberlo.
-
-     PASO 2. INSERTAR EN UNA PÁGINA DE WORDPRESS (DIVI)
-     ---------------------------------------------------
-     En el editor Divi de la página donde quieres que aparezca
-     (por ejemplo /analisis-woocommerce/), añade un módulo
-     "Código" y pega el bloque de ABAJO.
-
-     Queda debajo del header del theme automáticamente porque
-     el header de Divi es global y la página se renderiza después.
-     ========================================================= -->
+     Features:
+     - Loading skeleton mientras carga (evita "flash" vacío)
+     - Auto-resize de altura via postMessage (sin scroll interno)
+     - Cache busting con ?v= basado en fecha (forzar recarga ante updates)
+     - Fallback min-height si postMessage falla
+     - CSS scoped (.wcsa-*) para no colisionar con Divi/Astra/etc
+     - Handler de error si el iframe no carga (muestra enlace directo)
+     - Responsive: collapse a ancho completo en mobile
+     ═══════════════════════════════════════════════════════════════════════ -->
 
 <style>
-  .wc-analyzer-embed{
+  .wcsa-embed{
     position: relative;
     width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
     background: #F3F4F6;
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(15,23,42,0.06);
+    box-shadow: 0 1px 3px rgba(15,23,42,0.08), 0 4px 16px rgba(15,23,42,0.04);
+    min-height: 900px;
   }
-  .wc-analyzer-embed iframe{
+  .wcsa-embed iframe{
     width: 100%;
     border: 0;
     display: block;
-    min-height: 900px;  /* altura inicial — se ajusta sola con postMessage */
+    min-height: 900px;
+    transition: height 0.2s ease-out;
+    background: transparent;
+  }
+  /* Loading skeleton — se esconde cuando el iframe termina de cargar */
+  .wcsa-loader{
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #F3F4F6;
+    color: #64748B;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Helvetica, sans-serif;
+    font-size: 13px;
+    gap: 12px;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .wcsa-loader.hidden{ opacity: 0 }
+  .wcsa-spinner{
+    width: 32px; height: 32px;
+    border: 3px solid #E2E8F0;
+    border-top-color: #2563EB;
+    border-radius: 50%;
+    animation: wcsa-spin 0.8s linear infinite;
+  }
+  @keyframes wcsa-spin{ to{ transform: rotate(360deg) } }
+  .wcsa-fallback{
+    display: none;
+    padding: 40px 24px;
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif;
+    color: #475569;
+    font-size: 14px;
+  }
+  .wcsa-fallback a{ color: #2563EB; font-weight: 600 }
+  .wcsa-embed.errored .wcsa-fallback{ display: block }
+  .wcsa-embed.errored iframe,
+  .wcsa-embed.errored .wcsa-loader{ display: none }
+  @media (max-width: 720px){
+    .wcsa-embed{ border-radius: 8px; min-height: 700px }
+    .wcsa-embed iframe{ min-height: 700px }
   }
 </style>
 
-<div class="wc-analyzer-embed">
+<div class="wcsa-embed" id="wcsa-container">
+  <div class="wcsa-loader" id="wcsa-loader">
+    <div class="wcsa-spinner"></div>
+    <div>Cargando WooCommerce Sales Analyzer…</div>
+  </div>
   <iframe
-    id="wc-analyzer-iframe"
-    src="https://limaretail.com/herramientas/wc-analyzer/"
-    title="WooCommerce Sales Analyzer"
+    id="wcsa-iframe"
+    src="about:blank"
+    title="WooCommerce Sales Analyzer · Lima Retail"
     loading="lazy"
-    allow="clipboard-read; clipboard-write"
-  ></iframe>
+    referrerpolicy="no-referrer-when-downgrade"
+    allow="clipboard-read; clipboard-write">
+  </iframe>
+  <div class="wcsa-fallback">
+    No se pudo cargar la herramienta.
+    <a href="https://limaretail.com/woocommerce-analytics/" target="_blank" rel="noopener">
+      Ábrela en una pestaña nueva →
+    </a>
+  </div>
 </div>
 
 <script>
-  // Auto-resize del iframe según el contenido del tool.
-  (function(){
-    var iframe = document.getElementById('wc-analyzer-iframe');
-    window.addEventListener('message', function(e){
-      if(!e.data || e.data.type !== 'wc-analyzer-height') return;
-      if(e.source !== iframe.contentWindow) return;
-      var h = Math.max(900, Math.min(5000, e.data.height + 20));
-      iframe.style.height = h + 'px';
-    });
-  })();
+(function(){
+  var TOOL_URL = 'https://limaretail.com/woocommerce-analytics/';
+
+  var container = document.getElementById('wcsa-container');
+  var iframe    = document.getElementById('wcsa-iframe');
+  var loader    = document.getElementById('wcsa-loader');
+
+  // Cache busting: fuerza recarga cada hora (pasan 3600 segundos).
+  // Si quieres forzar recarga ya mismo, cambia el divisor a Date.now().
+  var cacheKey = Math.floor(Date.now() / 3600000);
+  iframe.src = TOOL_URL + '?v=' + cacheKey;
+
+  // Esconde el skeleton cuando el iframe carga
+  var loaderHidden = false;
+  function hideLoader(){
+    if(loaderHidden) return;
+    loaderHidden = true;
+    if(loader) loader.classList.add('hidden');
+    setTimeout(function(){
+      if(loader && loader.parentNode) loader.parentNode.removeChild(loader);
+    }, 400);
+  }
+  iframe.addEventListener('load', hideLoader);
+
+  // Auto-resize via postMessage.
+  // El tool emite { type: 'wc-analyzer-height', height: N } en cada render.
+  window.addEventListener('message', function(e){
+    if(!e.data || typeof e.data !== 'object') return;
+    if(e.data.type !== 'wc-analyzer-height') return;
+    if(e.source !== iframe.contentWindow) return;
+    var h = Math.max(700, Math.min(8000, Number(e.data.height) + 20));
+    if(!isFinite(h)) return;
+    iframe.style.height = h + 'px';
+    hideLoader();
+  });
+
+  // Error handler: si el iframe no carga en 15 seg muestra fallback con enlace
+  var loadTimeout = setTimeout(function(){
+    if(!loaderHidden){
+      container.classList.add('errored');
+      console.warn('[wcsa] iframe timeout — mostrando fallback');
+    }
+  }, 15000);
+  iframe.addEventListener('load', function(){ clearTimeout(loadTimeout); });
+  iframe.addEventListener('error', function(){
+    clearTimeout(loadTimeout);
+    container.classList.add('errored');
+  });
+})();
 </script>
 
-<!-- =========================================================
-     ALTERNATIVA: ALTURA FIJA (SIN AUTO-RESIZE)
-     ---------------------------------------------------------
-     Si prefieres una altura fija que scrollee internamente,
-     reemplaza el bloque anterior por:
+<!-- ═══════════════════════════════════════════════════════════════════════
+     Troubleshooting si no se ve después de pegar:
 
-     <iframe
-       src="https://limaretail.com/herramientas/wc-analyzer/"
-       style="width:100%;height:90vh;border:0;border-radius:12px"
-       title="WooCommerce Sales Analyzer">
-     </iframe>
-     ========================================================= -->
+     1. "Sale en blanco" → verifica que https://limaretail.com/woocommerce-analytics/
+        responda 200 directamente en el navegador. Si da 404, falta el index.html
+        en el hosting o su tamaño es incorrecto (debe ser ~166 KB, no 831 bytes).
+
+     2. "Carga pero aparece fallback con enlace" → el iframe demoró más de 15s.
+        Causa común: el hosting está lento. Sube `loadTimeout` a 30000 (30s).
+
+     3. "La altura queda cortada / hay scroll dentro del iframe" → WP Rocket o
+        un plugin de "lazy load iframes" está interceptando el postMessage.
+        Desactiva lazy load del iframe agregando class="no-lazy" al <iframe>,
+        o desactívalo para esa página en WP Rocket.
+
+     4. "El iframe muestra la calculadora de otro proyecto" → el `src=` apunta a
+        la URL equivocada, o Cloudflare está cacheando una versión antigua.
+        Purga caché de Cloudflare si lo usas.
+
+     5. "Borde o sombra se ve distinto al resto de la página" → ajusta las
+        variables en la sección <style> de arriba. El diseño por defecto
+        coincide con el tema Lima Retail (gris claro #F3F4F6, radio 12px).
+
+     Última versión del snippet: 2 (2026-04-21).
+     Si el tool en /woocommerce-analytics/ se actualiza pero el iframe sigue
+     mostrando la vieja, espera hasta 1 hora (por el cacheKey) o pulsa el
+     botón "Clear Cache" de WP Rocket.
+     ═══════════════════════════════════════════════════════════════════════ -->
