@@ -155,20 +155,22 @@ function parseOrders(rows){
   // por substring, causando que el parser crea que hay 1 producto por pedido).
   const productsIdx = findCol(header, ['Producto(s)','Product(s)','Productos','Products','Artículos','Articulos','Line items']);
 
-  // PASO 2 — Buscar columna SINGULAR excluyendo la columna ya asignada a agregada.
+  // PASO 2 — Buscar columna SINGULAR excluyendo la columna ya asignada a agregada
+  // Y excluyendo headers que obviamente NO son de producto (cantidad, importe, cupón, etc).
+  // Esto evita que 'Artículo' fuzzy-matchee 'Artículos vendidos' (columna de qty).
   const H2 = header.map(norm);
+  const notProduct = h => /vendid|cantid|quantit|unidad|cupon|cupón|price\b|precio|importe|monto|total|ingresos|ventas|coste|costo|fecha|date|estado|status|correo|email|teléfono|telefono|phone|region|país|pais|ciudad|postal|atribuc/.test(h);
   const findProductCol = () => {
-    const candidates = ['Nombre del artículo','Nombre del articulo','Nombre del producto','Nombre producto','Producto','Product','Product name','Product Name','Line item name','Item','Artículo','Articulo','Item name','Name'];
-    // Exact match first
+    // Quité 'Artículo'/'Articulo' bare — muy amplios. 'Nombre del artículo' ya los cubre por fuzzy.
+    const candidates = ['Nombre del artículo','Nombre del articulo','Nombre del producto','Nombre producto','Producto','Product','Product name','Product Name','Line item name','Item','Item name','Name'];
     for(const cand of candidates){
       const c = norm(cand);
-      const idx = H2.findIndex((h, i) => i !== productsIdx && h === c);
+      const idx = H2.findIndex((h, i) => i !== productsIdx && !notProduct(h) && h === c);
       if(idx >= 0) return idx;
     }
-    // Fuzzy fallback
     for(const cand of candidates){
       const c = norm(cand);
-      const idx = H2.findIndex((h, i) => i !== productsIdx && h.includes(c));
+      const idx = H2.findIndex((h, i) => i !== productsIdx && !notProduct(h) && h.includes(c));
       if(idx >= 0) return idx;
     }
     return -1;
