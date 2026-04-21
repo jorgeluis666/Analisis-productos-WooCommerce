@@ -1894,14 +1894,34 @@ function benchCard(title, yourValue, band, formatter, desc, lowerIsBetter){
 
 // ===== Iframe host integration =====
 // If embedded (different origin or window.parent !== window), post height to parent
-// so the host page can size the iframe dynamically. Host should listen:
-//   window.addEventListener('message', e => { if(e.data && e.data.type === 'wc-analyzer-height') iframe.style.height = e.data.height + 'px' })
+// so the host page can size the iframe dynamically.
+//
+// Si estamos en standalone (no iframe), añade body.standalone para activar
+// min-height:100vh. Si estamos embebidos, body.standalone queda fuera, lo que
+// evita el loop de growth causado por 100vh re-calculándose cuando el parent
+// resize el iframe.
+if(window.parent === window){
+  document.body.classList.add('standalone');
+}
+
+// Cache de la última altura enviada — previene re-envíos si el delta es mínimo
+// (que causarían loop de growth por efectos de redondeo o margins).
+let _lastSentHeight = 0;
+let _postTimer = null;
 function postHeightToParent(){
   if(window.parent === window) return;
-  try {
-    const h = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
-    window.parent.postMessage({ type: 'wc-analyzer-height', height: h }, '*');
-  } catch(e){ /* cross-origin restrictions — silent */ }
+  // Throttle a 80ms para evitar cascada de posts durante cambios rápidos
+  if(_postTimer) return;
+  _postTimer = setTimeout(() => {
+    _postTimer = null;
+    try {
+      const h = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+      // Skip si el delta es trivial (<5px) — rompe el loop de growth
+      if(Math.abs(h - _lastSentHeight) < 5) return;
+      _lastSentHeight = h;
+      window.parent.postMessage({ type: 'wc-analyzer-height', height: h }, '*');
+    } catch(e){ /* cross-origin restrictions — silent */ }
+  }, 80);
 }
 const _origRender = render;
 render = function(){

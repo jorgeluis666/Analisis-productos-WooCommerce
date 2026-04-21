@@ -6,7 +6,11 @@ button,input,select,textarea{font-family:inherit}
 /* ===== Layout shell ===== */
 /* Nueva estructura vertical: topbar global arriba + cuerpo (sidebar + main) abajo */
 #app{min-height:100%;display:flex;flex-direction:column}
-@media (min-height: 500px){ #app{ min-height: 100vh } }
+/* min-height:100vh solo cuando NO estamos embebidos en iframe.
+   Dentro de un iframe, 100vh crece cuando el parent nos resize,
+   causando loop de growth infinito. Body.standalone se añade via JS
+   en app.js cuando window.parent === window. */
+body.standalone #app{ min-height: 100vh }
 
 /* ===== App topbar (full width, global) ===== */
 .app-topbar{display:flex;align-items:center;gap:14px;padding:14px 28px;background:#fff;border-bottom:1px solid var(--border,#E2E8F0);flex-wrap:wrap;position:sticky;top:0;z-index:100}
