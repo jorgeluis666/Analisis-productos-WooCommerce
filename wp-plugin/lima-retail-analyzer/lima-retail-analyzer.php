@@ -3,7 +3,7 @@
  * Plugin Name:       Lima Retail — WooCommerce Analyzer
  * Plugin URI:        https://limaretail.com/woocommerce-analytics/
  * Description:       Análisis avanzado de ventas, productos y clientes para tu tienda WooCommerce. Exporta datos con un click y descubre patrones de compra, bundles recomendados y clientes en riesgo.
- * Version:           1.0.0
+ * Version:           1.0.1
  * Author:            Lima Retail
  * Author URI:        https://limaretail.com
  * License:           GPL-2.0-or-later
@@ -21,11 +21,23 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('LRA_VERSION', '1.0.0');
+define('LRA_VERSION', '1.0.1');
 define('LRA_PLUGIN_FILE', __FILE__);
 define('LRA_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('LRA_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('LRA_ANALYZER_URL', 'https://limaretail.com/woocommerce-analytics/');
+
+// Lote por iteración en exports — balance entre memoria y velocidad.
+// Puede sobrescribirse desde wp-config.php si el sitio lo necesita.
+if (!defined('LRA_BATCH_SIZE')) {
+    define('LRA_BATCH_SIZE', 500);
+}
+
+// Tope máximo de pedidos por export. Protege tiendas grandes de timeouts/OOM.
+// Los pedidos más recientes se procesan primero (ORDER BY date DESC).
+if (!defined('LRA_MAX_ORDERS')) {
+    define('LRA_MAX_ORDERS', 30000);
+}
 
 // Declarar compatibilidad con HPOS (High-Performance Order Storage) de WooCommerce
 add_action('before_woocommerce_init', function () {

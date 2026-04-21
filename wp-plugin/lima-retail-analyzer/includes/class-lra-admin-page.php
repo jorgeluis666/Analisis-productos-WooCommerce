@@ -63,6 +63,20 @@ class LRA_Admin_Page {
                 sin tu consentimiento explícito.
             </p>
 
+            <div class="lra-privacy-notice">
+                <span class="dashicons dashicons-privacy"></span>
+                <div>
+                    <strong>Responsabilidad sobre datos personales</strong>
+                    <p>
+                        Los CSVs descargados contienen <strong>nombres, emails, teléfonos y direcciones de tus clientes</strong>.
+                        Estos datos personales son tu responsabilidad bajo
+                        <a href="https://www.gob.pe/institucion/minjus/normas-legales/243470-29733" target="_blank" rel="noopener">Ley 29733</a>
+                        en Perú (o la normativa equivalente de tu país). Guárdalos de forma segura, no los compartas
+                        en canales públicos ni los subas a servicios que no cumplan con protección de datos.
+                    </p>
+                </div>
+            </div>
+
             <div class="lra-layout">
                 <aside class="lra-sidebar">
 
@@ -132,27 +146,42 @@ class LRA_Admin_Page {
 
             <input type="hidden" id="lra-nonce" value="<?php echo esc_attr($nonce); ?>">
             <input type="hidden" id="lra-endpoint" value="<?php echo $export_endpoint; ?>">
+            <input type="hidden" id="lra-max-orders" value="<?php echo (int) LRA_MAX_ORDERS; ?>">
+            <input type="hidden" id="lra-count-orders" value="<?php echo (int) $counts['orders']; ?>">
         </div>
 
         <script>
         (function () {
-            var nonce    = document.getElementById('lra-nonce').value;
-            var endpoint = document.getElementById('lra-endpoint').value;
+            var nonce        = document.getElementById('lra-nonce').value;
+            var endpoint     = document.getElementById('lra-endpoint').value;
+            var maxOrders    = parseInt(document.getElementById('lra-max-orders').value, 10);
+            var countOrders  = parseInt(document.getElementById('lra-count-orders').value, 10);
+
+            function fmt(n){ return n.toLocaleString('es-PE'); }
 
             document.querySelectorAll('.lra-export-btn').forEach(function (btn) {
                 btn.addEventListener('click', function () {
                     var type = this.dataset.type;
+
+                    // Pre-check: si el tipo depende de orders y supera el cap, confirmar.
+                    // El cap aplica a productos también porque los stats se derivan de orders.
+                    if (countOrders > maxOrders) {
+                        var msg = 'Tu tienda tiene ' + fmt(countOrders) + ' pedidos.\n\n' +
+                                  'Por rendimiento, este export procesará los ' + fmt(maxOrders) + ' más recientes. ' +
+                                  'Los pedidos anteriores no se incluirán.\n\n' +
+                                  '¿Continuar?';
+                        if (!confirm(msg)) return;
+                    }
+
                     var label = this.querySelector('.lra-btn-label');
                     var icon  = this.querySelector('.dashicons');
                     var origLabel = label.textContent;
                     var origIcon  = icon.className;
 
-                    // UI: loading state
                     btn.disabled = true;
                     label.textContent = 'Generando CSV…';
                     icon.className = 'dashicons dashicons-update lra-spin';
 
-                    // Trigger download
                     var url = endpoint + '?action=lra_export&type=' + encodeURIComponent(type) + '&_wpnonce=' + encodeURIComponent(nonce);
                     var a = document.createElement('a');
                     a.href = url;
@@ -161,12 +190,12 @@ class LRA_Admin_Page {
                     a.click();
                     document.body.removeChild(a);
 
-                    // Restore button after 2.5s (browser will have started download by then)
+                    // Restaurar después de 3s (descarga debe haber arrancado)
                     setTimeout(function () {
                         btn.disabled = false;
                         label.textContent = origLabel;
                         icon.className = origIcon;
-                    }, 2500);
+                    }, 3000);
                 });
             });
         })();

@@ -4,7 +4,7 @@ Tags: woocommerce, analytics, reports, sales, customer-insights
 Requires at least: 5.8
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -70,6 +70,13 @@ El analyzer vive en `https://limaretail.com/woocommerce-analytics/`. Si prefiere
 
 == Changelog ==
 
+= 1.0.1 =
+* Procesamiento por lotes (500 pedidos por iteración) para soportar tiendas grandes sin agotar memoria.
+* Hard cap de 30,000 pedidos por export (configurable vía LRA_MAX_ORDERS en wp-config.php).
+* Pre-confirmación con el usuario cuando la tienda supera el cap, antes de lanzar descarga.
+* Streaming de output: los CSVs se envían al browser mientras se generan, no esperan a tener todo en memoria.
+* Banner de privacidad visible en el panel admin advirtiendo sobre manejo de PII (Ley 29733 Perú).
+
 = 1.0.0 =
 * Release inicial.
 * Export de productos, pedidos y clientes a CSV.
@@ -77,6 +84,9 @@ El analyzer vive en `https://limaretail.com/woocommerce-analytics/`. Si prefiere
 * UI admin con stats rápidas e iframe del analyzer.
 
 == Upgrade Notice ==
+
+= 1.0.1 =
+Mejora de rendimiento para tiendas grandes + aviso legal de privacidad. Recomendado actualizar.
 
 = 1.0.0 =
 Primera versión pública.
