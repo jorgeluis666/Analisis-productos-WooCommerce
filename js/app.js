@@ -1915,7 +1915,18 @@ function postHeightToParent(){
   _postTimer = setTimeout(() => {
     _postTimer = null;
     try {
-      const h = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+      // Usar #app.getBoundingClientRect().bottom en vez de scrollHeight.
+      // getBoundingClientRect da la posición exacta del elemento sin contar
+      // margenes fantasma, min-height heredados, ni elementos fuera del flow.
+      // Si #app no existe, fallback a scrollHeight.
+      const appEl = document.getElementById('app');
+      let h;
+      if(appEl){
+        const rect = appEl.getBoundingClientRect();
+        h = Math.ceil(rect.bottom);
+      } else {
+        h = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+      }
       // Skip si el delta es trivial (<5px) — rompe el loop de growth
       if(Math.abs(h - _lastSentHeight) < 5) return;
       _lastSentHeight = h;
