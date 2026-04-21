@@ -1,0 +1,173 @@
+/* ═══════════════════════════════════════════════════════════════
+   Lima Retail Analyzer — WP Admin styles
+   ═══════════════════════════════════════════════════════════════ */
+
+.lra-wrap { max-width: 1600px; margin-right: 20px; }
+
+.lra-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 22px;
+    color: #0F172A;
+}
+.lra-title .dashicons {
+    font-size: 26px;
+    color: #2563EB;
+}
+
+.lra-intro {
+    max-width: 900px;
+    font-size: 14px;
+    color: #475569;
+    line-height: 1.6;
+    margin: 10px 0 20px;
+}
+
+.lra-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 20px;
+    min-height: 900px;
+}
+
+/* ───── Sidebar con botones de export ───── */
+.lra-sidebar {
+    background: #fff;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    padding: 20px;
+    align-self: flex-start;
+    position: sticky;
+    top: 50px;
+}
+
+.lra-sidebar h2 {
+    font-size: 13px;
+    color: #0F172A;
+    margin: 0 0 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.lra-sidebar .lra-help {
+    font-size: 12px;
+    color: #64748B;
+    margin: 0 0 14px;
+    line-height: 1.55;
+}
+
+.lra-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #F1F5F9;
+}
+.lra-stat { text-align: center; padding: 8px 4px; background: #F8FAFC; border-radius: 7px; }
+.lra-stat-val { font-size: 16px; font-weight: 700; color: #0F172A; }
+.lra-stat-lbl {
+    font-size: 10px;
+    color: #94A3B8;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 2px;
+}
+
+.lra-export-btn {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 8px !important;
+    justify-content: flex-start !important;
+    text-align: left;
+    padding: 8px 12px !important;
+    height: auto !important;
+    line-height: 1.3 !important;
+    background: #2563EB !important;
+    border-color: #2563EB !important;
+    color: #fff !important;
+    transition: background 0.15s;
+}
+.lra-export-btn:hover:not(:disabled) {
+    background: #1D4ED8 !important;
+    border-color: #1D4ED8 !important;
+}
+.lra-export-btn:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+.lra-export-btn .dashicons {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+.lra-btn-label { flex: 1; }
+
+.lra-spin {
+    animation: lra-spin 1s linear infinite;
+    display: inline-block;
+}
+@keyframes lra-spin { to { transform: rotate(360deg); } }
+
+.lra-note {
+    background: #ECFDF5;
+    border-left: 3px solid #059669;
+    padding: 10px 12px;
+    font-size: 11px;
+    color: #065F46;
+    border-radius: 4px;
+    margin-top: 18px;
+    line-height: 1.55;
+}
+
+.lra-footer {
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid #F1F5F9;
+    font-size: 12px;
+    color: #64748B;
+}
+.lra-footer a {
+    color: #2563EB;
+    text-decoration: none;
+    font-weight: 600;
+}
+.lra-footer a:hover { color: #1D4ED8; }
+.lra-version {
+    color: #94A3B8;
+    font-size: 10px;
+    margin-top: 10px !important;
+}
+
+/* ───── iframe del analyzer ───── */
+.lra-iframe-wrap {
+    background: #F3F4F6;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    overflow: hidden;
+    min-height: 900px;
+}
+.lra-iframe-wrap iframe {
+    width: 100%;
+    height: 100%;
+    min-height: 900px;
+    border: 0;
+    display: block;
+    background: transparent;
+}
+
+/* ───── Responsive ───── */
+@media (max-width: 1100px) {
+    .lra-layout { grid-template-columns: 260px 1fr; }
+}
+@media (max-width: 900px) {
+    .lra-layout { grid-template-columns: 1fr; }
+    .lra-sidebar { position: static; }
+    .lra-iframe-wrap { min-height: 700px; }
+    .lra-iframe-wrap iframe { min-height: 700px; }
+}

@@ -7,6 +7,8 @@ Thumbs.db
 node_modules/
 # Bundle generado por build-bundle.py — no versionar
 woocommerce-analyzer.html
+# Plugin ZIP generado — no versionar (se regenera desde fuentes)
+wp-plugin/lima-retail-analyzer.zip
 *.tmp
 *.bak
 # Test data del usuario — nunca subir al repo público
