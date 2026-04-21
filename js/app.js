@@ -251,7 +251,8 @@ const ICON = {
   scale:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3v18"/><path d="M18 3v18"/><path d="M3 8h18"/><path d="M3 16h18"/></svg>',
   sheet:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>',
   pin:        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
-  people:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+  people:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  menu:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>'
 };
 
 // ===== Render =====
@@ -364,7 +365,24 @@ function render(){
   }
   main.appendChild(content);
   body.appendChild(main);
+  // Backdrop para cerrar el drawer en mobile (tapping fuera del sidebar)
+  const backdrop = document.createElement('div');
+  backdrop.className = 'sidebar-backdrop';
+  backdrop.addEventListener('click', closeMobileDrawer);
+  body.appendChild(backdrop);
   root.appendChild(body);
+}
+
+function closeMobileDrawer(){
+  const sb = document.querySelector('.sidebar');
+  if(sb) sb.classList.remove('open');
+  document.body.classList.remove('drawer-open');
+}
+function toggleMobileDrawer(){
+  const sb = document.querySelector('.sidebar');
+  if(!sb) return;
+  const isOpen = sb.classList.toggle('open');
+  document.body.classList.toggle('drawer-open', isOpen);
 }
 
 function bindPostRender(){
@@ -425,7 +443,11 @@ function renderSidebar(){
   `;
   el.querySelectorAll('.sidebar-item').forEach(n => {
     if(n.classList.contains('disabled')) return;
-    n.onclick = () => { state.view = n.dataset.id; render(); };
+    n.onclick = () => {
+      state.view = n.dataset.id;
+      closeMobileDrawer();  // cerrar drawer en mobile al elegir sección
+      render();
+    };
   });
   return el;
 }
@@ -445,6 +467,7 @@ function renderTopbar(){
   }
 
   el.innerHTML = `
+    <button class="app-menu-toggle" id="btn-menu-toggle" aria-label="Menú">${ICON.menu}</button>
     <div class="app-brand">
       Análisis de Ventas, Productos y Clientes
       <div class="app-brand-sub">Lima Retail · WooCommerce Analyzer</div>
@@ -455,13 +478,15 @@ function renderTopbar(){
       ${pills.length ? `<div class="app-section-meta">${pills.join('')}</div>` : ''}
     </div>
     <div class="app-topbar-right">
-      ${hasAny ? `<button class="btn" id="btn-upload">${ICON.upload}<span>Subir archivo</span></button>
-                  <button class="btn" id="btn-gs">${ICON.sheet}<span>Google Sheets</span></button>
+      ${hasAny ? `<button class="btn" id="btn-upload" title="Subir archivo">${ICON.upload}<span>Subir archivo</span></button>
+                  <button class="btn" id="btn-gs" title="Importar desde Google Sheets">${ICON.sheet}<span>Google Sheets</span></button>
                   <button class="btn" id="btn-study" title="Configurar participación en el estudio">${ICON.people}<span>${hasOptedIn()?'Estudio ✓':'Estudio'}</span></button>
-                  <button class="btn danger" id="btn-reset">Reiniciar</button>` : ''}
+                  <button class="btn danger" id="btn-reset" title="Reiniciar">Reiniciar</button>` : ''}
       <input type="file" id="hidden-upload" accept=".csv,.xlsx,.xls,text/csv" multiple style="display:none">
     </div>
   `;
+  const btnMenu = el.querySelector('#btn-menu-toggle');
+  if(btnMenu) btnMenu.onclick = toggleMobileDrawer;
   const hidden = el.querySelector('#hidden-upload');
   const btnUp = el.querySelector('#btn-upload');
   if(btnUp) btnUp.onclick = () => hidden.click();
