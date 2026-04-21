@@ -147,24 +147,51 @@ function parseProducts(rows){
 
 function parseOrders(rows){
   const header = rows[0];
+
+  // PASO 1 — Detectar columna AGREGADA primero (tiene prioridad).
+  // "Producto(s)" de WooCommerce Analytics concatena varios productos en una sola celda
+  // con formato "1× Prod A, 1× Prod B". Debe detectarse antes que la búsqueda del singular
+  // "Producto" para que no se confundan (el fuzzy match del singular matchea el plural
+  // por substring, causando que el parser crea que hay 1 producto por pedido).
+  const productsIdx = findCol(header, ['Producto(s)','Product(s)','Productos','Products','Artículos','Articulos','Line items']);
+
+  // PASO 2 — Buscar columna SINGULAR excluyendo la columna ya asignada a agregada.
+  const H2 = header.map(norm);
+  const findProductCol = () => {
+    const candidates = ['Nombre del artículo','Nombre del articulo','Nombre del producto','Nombre producto','Producto','Product','Product name','Product Name','Line item name','Item','Artículo','Articulo','Item name','Name'];
+    // Exact match first
+    for(const cand of candidates){
+      const c = norm(cand);
+      const idx = H2.findIndex((h, i) => i !== productsIdx && h === c);
+      if(idx >= 0) return idx;
+    }
+    // Fuzzy fallback
+    for(const cand of candidates){
+      const c = norm(cand);
+      const idx = H2.findIndex((h, i) => i !== productsIdx && h.includes(c));
+      if(idx >= 0) return idx;
+    }
+    return -1;
+  };
+
   const col = {
     orderId:  findCol(header, ['Order ID','N° pedido','Número de pedido','Numero de pedido','Order #','ID pedido','Order Number','Pedido #','ID','#']),
     date:     findCol(header, ['Fecha del pedido','Fecha de pedido','Fecha','Date','Order date','Fecha de compra']),
     status:   findCol(header, ['Estado','Status','Estado del pedido']),
-    product:  findCol(header, ['Nombre del artículo','Nombre del articulo','Nombre del producto','Nombre producto','Producto','Product','Product name','Product Name','Line item name','Item','Artículo','Articulo','Item name','Name']),
+    product:  findProductCol(),
     qty:      findCol(header, ['Cantidad','Quantity','Qty','Items sold','Unidades','Cant','Cantidades','Número de unidades','Artículos vendidos','Articulos vendidos']),
     total:    findCol(header, ['Ingresos netos (con formato)','Ingresos netos','Ventas netas','Coste de artículo','Coste de articulo','Importe total','Importe','Monto total','Monto','Total línea','Total linea','Line total','Line Total','Net sales','Subtotal','Subtotal del artículo','Coste','Costo','Precio total','Precio','Price','Unit price','Precio unitario','Price per unit','Amount','Valor','Total']),
     customer: findCol(header, ['Correo electrónico (facturación)','Correo electrónico','Email','Customer email','Correo','Cliente','Email del cliente','E-mail','Customer']),
     firstName:findCol(header, ['Nombre (facturación)','Nombre','First name','Customer first name','Billing first name']),
     lastName: findCol(header, ['Apellidos (facturación)','Apellidos','Last name','Customer last name','Billing last name']),
     phone:    findCol(header, ['Teléfono (facturación)','Teléfono','Telefono','Phone','Celular','Mobile']),
-    products: findCol(header, ['Producto(s)','Productos','Products','Product(s)','Artículos','Articulos','Line items'])
+    products: productsIdx
   };
 
   // Debug info: expone qué columnas se detectaron para poder diagnosticar problemas
   if(typeof window !== 'undefined'){
     window.__lastOrdersColumns = { header, col, missing: [] };
-    if(col.product < 0) window.__lastOrdersColumns.missing.push('producto');
+    if(col.product < 0 && col.products < 0) window.__lastOrdersColumns.missing.push('producto');
     if(col.total   < 0) window.__lastOrdersColumns.missing.push('precio/total');
     if(col.date    < 0) window.__lastOrdersColumns.missing.push('fecha');
     if(col.qty     < 0) window.__lastOrdersColumns.missing.push('cantidad (se usará 1)');
