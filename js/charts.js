@@ -171,7 +171,6 @@ function yearCalendar(byDay, opts={}){
   const height = padT + 7 * (cellSize + gap) + padB;
 
   const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  const dowLabels = ['L','','M','','V','',''];
 
   let svg = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" class="chart-svg">`;
   const monthShown = new Set();

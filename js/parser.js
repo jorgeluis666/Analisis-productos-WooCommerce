@@ -190,14 +190,11 @@ function parseOrders(rows){
     products: productsIdx
   };
 
-  // Debug info: expone qué columnas se detectaron para poder diagnosticar problemas
-  if(typeof window !== 'undefined'){
-    window.__lastOrdersColumns = { header, col, missing: [] };
-    if(col.product < 0 && col.products < 0) window.__lastOrdersColumns.missing.push('producto');
-    if(col.total   < 0) window.__lastOrdersColumns.missing.push('precio/total');
-    if(col.date    < 0) window.__lastOrdersColumns.missing.push('fecha');
-    if(col.qty     < 0) window.__lastOrdersColumns.missing.push('cantidad (se usará 1)');
-  }
+  const warnings = [];
+  if(col.product < 0 && col.products < 0) warnings.push('producto');
+  if(col.total < 0) warnings.push('precio/total');
+  if(col.date  < 0) warnings.push('fecha');
+  if(col.qty   < 0) warnings.push('cantidad (se usará 1)');
 
   const hasOrderId = col.orderId >= 0;
   const hasProduct = col.product >= 0;
@@ -241,7 +238,7 @@ function parseOrders(rows){
         status: current.status
       });
     }
-    return { lineItems };
+    return { lineItems, warnings, header };
   }
 
   // Original logic: explicit Order ID (line-item or aggregated)
@@ -303,7 +300,7 @@ function parseOrders(rows){
       }
     }
   }
-  return { lineItems };
+  return { lineItems, warnings, header };
 }
 
 function parseDate(s){

@@ -11,8 +11,26 @@ const state = {
   periodLabel: '',
   calendarYear: null,
   calendarMetric: 'orders',
-  ordersWarning: null
+  ordersWarning: null,
+  // Cached cross-computations — recomputed when source data changes, not on each render
+  enrichedProducts: null,
+  monthlyTop: null
 };
+
+// Recomputes cross-data fields that depend on both products + orders being loaded.
+// Call after any data change to keep cached state fresh.
+function recomputeDerivedData(){
+  if(state.productsStats && state.ordersData && state.ordersStats){
+    state.enrichedProducts = enrichProductsWithOrders(
+      state.productsStats.top, state.ordersData.lineItems, state.ordersStats
+    );
+  } else {
+    state.enrichedProducts = null;
+  }
+  state.monthlyTop = state.ordersData
+    ? monthlyTopProducts(state.ordersData.lineItems, 5)
+    : null;
+}
 
 // ===== Config del estudio =====
 // Cuando tengas backend, rellena estas URLs. Mientras estén vacías, la contribución
@@ -214,6 +232,7 @@ function restoreState(){
     }
     if(p.periodLabel) state.periodLabel = p.periodLabel;
     if(p.view) state.view = p.view;
+    recomputeDerivedData();
     return !!(state.productsData || state.ordersData || state.customersData);
   } catch(e){
     console.warn('restoreState:', e.message);
@@ -221,6 +240,14 @@ function restoreState(){
   }
 }
 function clearStoredState(){ try { localStorage.removeItem(STORAGE_KEY); } catch(e){} }
+
+function resetState(){
+  state.productsFile=null; state.productsData=null; state.productsStats=null;
+  state.ordersFile=null;   state.ordersData=null;   state.ordersStats=null;
+  state.customersFile=null;state.customersData=null;state.customersStats=null;
+  state.periodLabel=''; state.view='resumen'; state.ordersWarning=null;
+  state.enrichedProducts=null; state.monthlyTop=null;
+}
 
 const root = document.getElementById('app');
 const toast = document.getElementById('toast');
@@ -515,10 +542,7 @@ function renderTopbar(){
   const reset = el.querySelector('#btn-reset');
   if(reset) reset.onclick = () => {
     if(!confirm('¿Borrar todos los datos cargados? Esto también limpia el guardado local.')) return;
-    state.productsFile=null; state.productsData=null; state.productsStats=null;
-    state.ordersFile=null; state.ordersData=null; state.ordersStats=null;
-    state.customersFile=null; state.customersData=null; state.customersStats=null;
-    state.periodLabel=''; state.view='resumen'; state.ordersWarning=null;
+    resetState();
     clearStoredState();
     render();
   };
@@ -644,11 +668,9 @@ function handleFile(file, onDone){
         state.ordersFile = { name: file.name };
         state.ordersData = ord;
         state.ordersStats = analyzeOrders(ord.lineItems);
-        // Warn si el parser no detectó columna crítica
-        const dbg = window.__lastOrdersColumns || {};
-        if(dbg.missing && dbg.missing.length){
-          state.ordersWarning = dbg;
-          showToast(`Pedidos cargados pero faltan columnas: ${dbg.missing.join(', ')}. Revisa el banner amarillo.`, 'err');
+        if(ord.warnings && ord.warnings.length){
+          state.ordersWarning = { missing: ord.warnings, header: ord.header };
+          showToast(`Pedidos cargados pero faltan columnas: ${ord.warnings.join(', ')}. Revisa el banner amarillo.`, 'err');
         } else {
           state.ordersWarning = null;
           showToast(`Pedidos cargados: ${state.ordersStats.totals.totalOrders}`, 'ok');
@@ -665,6 +687,7 @@ function handleFile(file, onDone){
         onDone && onDone();
         return;
       }
+      recomputeDerivedData();
       saveState();
       render();
       onDone && onDone();
@@ -723,7 +746,13 @@ function loadFromGoogleSheets(url){
         state.ordersFile = fakeFile;
         state.ordersData = ord;
         state.ordersStats = analyzeOrders(ord.lineItems);
-        showToast(`Pedidos cargados desde Google Sheets: ${state.ordersStats.totals.totalOrders}`, 'ok');
+        if(ord.warnings && ord.warnings.length){
+          state.ordersWarning = { missing: ord.warnings, header: ord.header };
+          showToast(`Pedidos cargados pero faltan columnas: ${ord.warnings.join(', ')}. Revisa el banner amarillo.`, 'err');
+        } else {
+          state.ordersWarning = null;
+          showToast(`Pedidos cargados desde Google Sheets: ${state.ordersStats.totals.totalOrders}`, 'ok');
+        }
       } else if(type === 'customers'){
         const cust = parseCustomers(rows);
         if(!cust.length){ showToast('No pude leer clientes', 'err'); return; }
@@ -735,6 +764,7 @@ function loadFromGoogleSheets(url){
         showToast('No se identificó el tipo (productos/pedidos/clientes) en la hoja', 'err');
         return;
       }
+      recomputeDerivedData();
       saveState();
       render();
     })
@@ -880,7 +910,7 @@ function renderYearCalendarBox(){
 }
 
 function renderMonthlyTopBox(){
-  const monthly = monthlyTopProducts(state.ordersData.lineItems, 5);
+  const monthly = state.monthlyTop || monthlyTopProducts(state.ordersData.lineItems, 5);
   if(!monthly.length) return '';
   const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const fmtMonth = mk => { const [y,m] = mk.split('-'); return monthNames[parseInt(m)-1] + ' ' + y; };
@@ -968,8 +998,8 @@ function viewProductos(){
   </div>`;
 
   // Panel enriquecido con datos de pedidos (solo si hay ordersStats)
-  if(state.ordersStats && state.ordersData){
-    const enriched = enrichProductsWithOrders(s.top, state.ordersData.lineItems, state.ordersStats);
+  if(state.ordersStats && state.enrichedProducts){
+    const enriched = state.enrichedProducts;
     h += `<div class="panel">
       <div class="panel-head"><div><div class="panel-title">Cruce productos × pedidos</div><div class="panel-sub">Datos combinados del CSV de Productos con tu archivo de Pedidos: ticket promedio del pedido que contiene cada producto, frecuencia y el producto con el que más se compra junto.</div></div></div>
       <div style="max-height:520px;overflow:auto"><table>
